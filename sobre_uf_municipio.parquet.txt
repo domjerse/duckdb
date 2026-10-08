@@ -7,3 +7,9 @@ COPY (
       municipio.microrregiao.mesorregiao.UF.sigla AS uf
              FROM read_json_auto('https://servicodados.ibge.gov.br/api/v1/localidades/distritos')
   ) TO 'uf_municipio.parquet' (FORMAT PARQUET);
+
+
+-- Importar base via DuckDb
+SELECT codigo_distrito, distrito_bairro, municipio, uf
+FROM 'https://raw.githubusercontent.com/domjerse/duckdb/main/uf_municipio.parquet'
+LIMIT 10;
