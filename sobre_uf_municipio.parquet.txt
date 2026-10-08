@@ -1,3 +1,22 @@
+-- Se o objetivo é aprender DuckDB rapidamente:
+-- Open-Meteo: https://archive-api.open-meteo.com/v1/archive?latitude=-22.91&longitude=-43.17&start_date=2020-01-01&end_date=2020-12-31&hourly=temperature_2m
+-- Banco Central: https://api.bcb.gov.br/dados/serie/bcdata.sgs.11/dados?formato=json
+-- BrasilAPI: 
+     -- Feriados: https://brasilapi.com.br/api/feriados/v1/2026
+     -- Fipe: https://brasilapi.com.br/api/fipe/marcas/v1/carros
+     -- Bancos: https://brasilapi.com.br/api/banks/v1
+-- ENEM Microdados: https://www.gov.br/inep/
+-- CNPJ Receita Federal: https://dadosabertos.rfb.gov.br/
+-- TSE: https://dadosabertos.tse.jus.br/
+-- DATASUS: https://datasus.saude.gov.br/
+
+
+-- Importar base via DuckDb
+SELECT codigo_distrito, distrito_bairro, municipio, uf
+FROM 'https://raw.githubusercontent.com/domjerse/duckdb/main/uf_municipio.parquet'
+LIMIT 10;
+
+
 -- Exportando dados via API do IBGE
 COPY (
  SELECT
@@ -7,9 +26,3 @@ COPY (
       municipio.microrregiao.mesorregiao.UF.sigla AS uf
              FROM read_json_auto('https://servicodados.ibge.gov.br/api/v1/localidades/distritos')
   ) TO 'uf_municipio.parquet' (FORMAT PARQUET);
-
-
--- Importar base via DuckDb
-SELECT codigo_distrito, distrito_bairro, municipio, uf
-FROM 'https://raw.githubusercontent.com/domjerse/duckdb/main/uf_municipio.parquet'
-LIMIT 10;
