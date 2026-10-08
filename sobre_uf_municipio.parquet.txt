@@ -26,3 +26,23 @@ COPY (
       municipio.microrregiao.mesorregiao.UF.sigla AS uf
              FROM read_json_auto('https://servicodados.ibge.gov.br/api/v1/localidades/distritos')
   ) TO 'uf_municipio.parquet' (FORMAT PARQUET);
+
+
+
+-- Personagens dos The Simpsons 
+INSTALL httpfs; LOAD httpfs;
+WITH dados AS (
+    SELECT unnest(results) AS p
+    FROM read_json_auto([
+        'https://thesimpsonsapi.com/api/characters?page=1',
+        'https://thesimpsonsapi.com/api/characters?page=2',
+        'https://thesimpsonsapi.com/api/characters?page=3',
+        'https://thesimpsonsapi.com/api/characters?page=4',
+        'https://thesimpsonsapi.com/api/characters?page=5',
+        'https://thesimpsonsapi.com/api/characters?page=6',
+        'https://thesimpsonsapi.com/api/characters?page=7',
+        'https://thesimpsonsapi.com/api/characters?page=8',
+        'https://thesimpsonsapi.com/api/characters?page=60',
+    ])
+)
+SELECT p.id, p.name, p.occupation, p.gender, p.birthdate FROM dados ORDER BY p.id;
