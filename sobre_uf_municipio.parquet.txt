@@ -1,0 +1,9 @@
+-- Exportando dados via API do IBGE
+COPY (
+ SELECT
+      id AS codigo_distrito,
+      nome AS distrito_bairro,
+      municipio.nome AS municipio,
+      municipio.microrregiao.mesorregiao.UF.sigla AS uf
+             FROM read_json_auto('https://servicodados.ibge.gov.br/api/v1/localidades/distritos')
+  ) TO 'uf_municipio.parquet' (FORMAT PARQUET);
