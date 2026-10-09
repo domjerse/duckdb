@@ -181,6 +181,37 @@ FROM odbc_scan(
 
 
 
+-- #### Processo de backup e restauração dos notebooks da DuckDB UI
+-- 1. Exportar a versão mais recente de cada notebook
+COPY (  SELECT * FROM _duckdb_ui.main.notebook_versions
+  	  QUALIFY ROW_NUMBER() OVER (PARTITION BY notebook_id
+        ORDER BY version DESC, created DESC ) = 1
+) TO 'C:/DuckDB/backup/notebooks_latest.json' FORMAT JSON, ARRAY true);
+
+-- 2. Exporta uma versão por notebook, escolhendo a de maior número de versão.
+COPY (
+    SELECT * FROM _duckdb_ui.main.notebooks
+)
+TO 'C:/DuckDB/backup/notebooks.json' (FORMAT JSON, ARRAY true);
+
+-- 3. Importar as versões posteriormente
+INSERT INTO _duckdb_ui.main.notebook_versions
+SELECT  notebook_id::UUID, version::INTEGER, title::VARCHAR,
+    json::VARCHAR, created::TIMESTAMP, expires::TIMESTAMP
+FROM read_json_auto( 'C:/DuckDB/backup/notebooks_latest.json' );
+
+-- Consultar as configurações relacionadas a memória e arquivos temporários:
+SELECT name, value FROM duckdb_settings()
+WHERE name IN ( 'memory_limit', 'temp_directory', 'max_temp_directory_size' );
+
+-- Notebook - Apaga todas as versões (CUIDADO)
+DELETE FROM _duckdb_ui.main.notebook_versions;
+SELECT COUNT(*) AS total_versoes FROM _duckdb_ui.main.notebook_versions;
+
+
+
+
+
 
 
 
