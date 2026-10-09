@@ -1,0 +1,96 @@
+
+-- iniciar o servidor automaticamente o navegador, execute dentro do DuckDB:
+CALL start_ui();
+
+-- iniciar o servidor SEM abrir automaticamente o navegador, execute dentro do DuckDB:
+CALL start_ui_server();
+
+-- 1. Anexa um banco de dados externo dando um nome (alias)
+ATTACH 'meu_banco_dados.duckdb' AS vendas;
+
+-- 3. Desconecta o banco e libera o arquivo no disco
+DETACH vendas;
+
+-- 2. Faz consultas nas tabelas desse banco
+SELECT * FROM vendas.relatorio_municipios LIMIT 10;
+
+-- Criar ou substituir dados
+CREATE OR REPLACE TABLE T12 AS
+SELECT 1 AS X UNION SELECT 2;
+
+-- Agrupa todos os campos agregados GROUP BY ALL
+SELECT  date_trunc('month', data_venda) AS mes, SUM(valor) AS total
+FROM 'vendas.parquet'
+GROUP BY ALL;
+
+-- Transformar linhas em colunas
+PIVOT 'uf_municipio.parquet' 
+ON uf 
+USING COUNT(codigo_distrito);
+
+-- Remove caracteres especiais
+SELECT  regexp_replace(distrito_bairro, '[0-9]', '', 'g') AS bairro_limpo FROM 'uf_municipio.parquet';
+
+-- Usando Rown Number
+SELECT *,
+    ROW_NUMBER() OVER (PARTITION BY uf ORDER BY municipio) AS id_no_estado
+FROM 'uf_municipio.parquet';
+
+-- Elimina subqueries pesada usando QUALIFY
+SELECT * FROM 'teste.parquet'
+QUALIFY ROW_NUMBER() OVER (PARTITION BY uf ORDER BY municipio) = 1;
+
+-- Ler excel
+INSTALL spatial; LOAD spatial; -- ou st_read
+SELECT * FROM st_read('relatorio.xlsx', layer='Aba1');
+
+-- Usa a variável em qualquer consulta usando GETVARIABLE()
+SET VARIABLE x = 2;
+SELECT 1 AS n UNION SELECT 2
+WHERE n = GETVARIABLE('x');
+
+-- Lista 
+SELECT [10, 20, 30, 40] AS numeros; -- Lista Simples
+SELECT list_contains([10, 20, 30], 20) AS contem_20; -- Contém na lista
+
+-- Reconhecer tipos automaticamente
+SELECT * FROM read_csv_auto('arquivo.csv');
+
+-- Forçar todas as colunas como texto all_varchar
+SELECT * FROM read_csv('arquivo.csv', delim=';', header=true, all_varchar=true, ignore_errors=true );
+
+-- Forçar apenas colunas específicas como texto
+SELECT * FROM read_csv_auto('seu_arquivo.csv', columns={'codigo_ibge': 'VARCHAR', 'cep': 'VARCHAR'} );
+
+-- Exportando
+COPY ( SELECT * FROM read_csv('teste.csv', all_varchar=true)
+) TO 'teste.parquet' (FORMAT PARQUET);
+
+-- Numeros Pares
+SELECT UNNEST(range(0, 11, 2)) AS pares;
+
+-- Gerar dias consecutivos de um mês
+SELECT UNNEST(range(DATE '2026-10-01', DATE '2026-10-10', INTERVAL '1 day')) AS data;
+
+-- Usando UNNEST, range, CHR
+SELECT  UNNEST(range(32, 127)) AS codigo_ascii,
+    CHR(UNNEST(range(32, 127))::INTEGER) AS caractere;
+
+-- Retorna 65
+SELECT ASCII('A') AS codigo;
+
+-- Pega 10% das linhas aleatoriamente
+SELECT * FROM 'base_gigante.parquet' USING SAMPLE 10%;
+
+-- Seleciona tudo, EXCETO o código do distrito
+SELECT * EXCLUDE (codigo_distrito) FROM 'uf_municipio.parquet';
+
+-- Seleciona tudo, mas substituindo o valor de uma coluna específica
+SELECT * REPLACE (UPPER(uf) AS uf) FROM 'uf_municipio.parquet';
+
+-- Pega exatamente 1000 linhas aleatórias
+SELECT * FROM 'base_gigante.parquet' USING SAMPLE 1000 ROWS;
+
+
+
+
