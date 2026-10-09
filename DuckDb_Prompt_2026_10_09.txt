@@ -1,9 +1,45 @@
 
--- iniciar o servidor automaticamente o navegador, execute dentro do DuckDB:
+-- Iniciar o servidor automaticamente o navegador, execute dentro do DuckDB:
 CALL start_ui();
 
--- iniciar o servidor SEM abrir automaticamente o navegador, execute dentro do DuckDB:
+-- Iniciar o servidor SEM abrir automaticamente o navegador, execute dentro do DuckDB:
 CALL start_ui_server();
+
+-- Tabela de clientes
+CREATE OR REPLACE TEMP TABLE clientes AS
+SELECT * FROM (  VALUES
+        (1,'João Silva','RJ',35,5500.00), (2,'Maria Souza','SP',28,7200.00),
+        (3,'Carlos Lima','MG',42,4300.00), (4,'Ana Costa','BA',31,6800.00), 
+        (5,'Pedro Santos','PR',25,3900.00)
+) t(id_cliente,nome,uf,idade,salario);
+
+-- Tabela de Vendas
+CREATE OR REPLACE TEMP TABLE vendas AS
+SELECT * FROM ( VALUES
+        (1,1,'Notebook',3500.00, DATE '2026-01-15'), (2,1,'Mouse',80.00, DATE '2026-01-15'),
+        (3,2,'Notebook',4200.00, DATE '2026-02-10'), (4,3,'Monitor',1200.00, DATE '2026-03-20'),
+        (5,4,'Teclado',250.00, DATE '2026-04-05')
+) t(id_venda,id_cliente,produto,valor,data_venda);
+
+
+-- Tabela Ficticia 1Milhão
+DROP TABLE IF EXISTS tb_milhao; CREATE OR REPLACE TEMP TABLE tb_milhao AS
+SELECT
+    i AS id,
+    upper(substr(md5(random()::VARCHAR), 1, 4)) || '-' ||  lpad(i::VARCHAR, 6, '0') AS codigo,
+    CASE WHEN random() < 0.8 THEN 'ATIVO' ELSE 'INATIVO' END AS status,
+    CASE (i % 5) WHEN 0 THEN 'RJ' WHEN 1 THEN 'SP' WHEN 2 THEN 'MG' WHEN 3 THEN 'BA' ELSE 'PR' END AS uf,
+    CASE (i % 4)
+        WHEN 0 THEN 'Direito'
+        WHEN 1 THEN 'Engenharia'
+        WHEN 2 THEN 'Administração'
+        ELSE 'Medicina'
+    END AS curso,
+    ROUND(100 + random() * 400, 2) AS valor, -- Valor entre 100 e 400
+    CASE CAST(floor(random() * 4) AS INTEGER) WHEN 0 THEN 30 WHEN 1 THEN 40 WHEN 2 THEN 50 ELSE 100 END AS desconto,
+    DATE '2025-01-01' + CAST(i % 730 AS INTEGER) AS data_ref
+FROM range(1,1000001) t(i);
+
 
 -- 1. Anexa um banco de dados externo dando um nome (alias)
 ATTACH 'meu_banco_dados.duckdb' AS vendas;
@@ -41,8 +77,8 @@ SELECT * FROM 'teste.parquet'
 QUALIFY ROW_NUMBER() OVER (PARTITION BY uf ORDER BY municipio) = 1;
 
 -- Ler excel
-INSTALL spatial; LOAD spatial; -- ou st_read
-SELECT * FROM st_read('relatorio.xlsx', layer='Aba1');
+INSTALL excel; LOAD excel; 
+SELECT * FROM read_xlsx('relatorio.xlsx', layer='Aba1');
 
 -- Usa a variável em qualquer consulta usando GETVARIABLE()
 SET VARIABLE x = 2;
@@ -90,6 +126,61 @@ SELECT * REPLACE (UPPER(uf) AS uf) FROM 'uf_municipio.parquet';
 
 -- Pega exatamente 1000 linhas aleatórias
 SELECT * FROM 'base_gigante.parquet' USING SAMPLE 1000 ROWS;
+
+
+-- DICAS SUPER #2 --------------------------------------------->
+
+CREATE OR REPLACE TEMP TABLE vendas AS
+SELECT * FROM (
+    VALUES
+            (1,'RJ','Notebook',3500),
+            (2,'RJ','Mouse',80),
+            (3,'SP','Notebook',4000),
+            (4,'SP','Teclado',200),
+            (5,'MG','Mouse',90)
+        ) t(id_venda, uf, produto, valor);
+
+SUMMARIZE vendas;
+
+SUMMARIZE
+SELECT * FROM vendas WHERE uf = 'SP';
+
+SUMMARIZE
+SELECT uf, produto, valor * 1.10 AS valor_reajustado FROM vendas;
+
+-- Muito útil para análise histogram:
+SELECT histogram(valor)
+FROM vendas;
+
+--Ver estatísticas de uma coluna:
+SELECT stats(valor)
+FROM vendas;
+
+-- Seleciona dados aleatórios
+SELECT * FROM vendas USING SAMPLE 2 ROWS;
+
+SELECT * FROM vendas USING SAMPLE 20 PERCENT;
+
+-- Excluir colunas não desejadas: 
+SELECT * EXCLUDE(id_venda) FROM vendas;
+
+-- Aleterar valores coluna sem listar todas
+SELECT * REPLACE ( upper(produto) AS produto ) FROM vendas;
+
+-- 
+INSTALL odbc; LOAD odbc;
+SELECT *
+FROM odbc_scan(
+  'Driver={Oracle in OraClient19Home1};
+   Dbq=SERVIDOR:1521/ORCL;
+   Uid=usuario;
+   Pwd=senha;',
+   'SCHEMA.CLIENTES'
+);
+
+
+
+
 
 
 
