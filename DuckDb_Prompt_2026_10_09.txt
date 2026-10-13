@@ -189,9 +189,7 @@ COPY (  SELECT * FROM _duckdb_ui.main.notebook_versions
 ) TO 'C:/DuckDB/backup/notebooks_latest.json' FORMAT JSON, ARRAY true);
 
 -- 2. Exporta uma versão por notebook, escolhendo a de maior número de versão.
-COPY (
-    SELECT * FROM _duckdb_ui.main.notebooks
-)
+COPY ( SELECT * FROM _duckdb_ui.main.notebooks )
 TO 'C:/DuckDB/backup/notebooks.json' (FORMAT JSON, ARRAY true);
 
 -- 3. Importar as versões posteriormente
@@ -199,6 +197,10 @@ INSERT INTO _duckdb_ui.main.notebook_versions
 SELECT  notebook_id::UUID, version::INTEGER, title::VARCHAR,
     json::VARCHAR, created::TIMESTAMP, expires::TIMESTAMP
 FROM read_json_auto( 'C:/DuckDB/backup/notebooks_latest.json' );
+
+-- 4. Conferir se os notebooks foram recuperados
+SELECT title, version, created 
+FROM _duckdb_ui.main.notebook_versions ORDER BY title;
 
 -- Consultar as configurações relacionadas a memória e arquivos temporários:
 SELECT name, value FROM duckdb_settings()
